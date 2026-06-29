@@ -402,6 +402,27 @@ textarea.form-ctrl { resize:vertical; }
   border-radius:10px; padding:8px 16px; font-size:12px; color:#a78bfa;
   display:none; pointer-events:none; backdrop-filter:blur(6px);
 }
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay {
+  display:none; position:fixed; inset:0; z-index:9000;
+  background:rgba(15,10,30,0.75); backdrop-filter:blur(4px);
+  flex-direction:column; align-items:center; justify-content:center; gap:16px;
+}
+#loading-overlay .spin {
+  width:40px; height:40px; border:3px solid rgba(124,58,237,.3);
+  border-top-color:#a78bfa; border-radius:50%; animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+#loading-overlay .load-txt { color:#a78bfa; font-size:14px; }
+
+/* ── REFRESH BUTTON ── */
+#btn-refresh {
+  background:none; border:1px solid rgba(124,58,237,.4); border-radius:8px;
+  color:#a78bfa; font-size:13px; padding:5px 12px; cursor:pointer;
+  transition:all .2s;
+}
+#btn-refresh:hover { background:rgba(124,58,237,.15); }
 </style>
 </head>
 <body>
@@ -432,7 +453,14 @@ textarea.form-ctrl { resize:vertical; }
     <div class="hs"><div class="hs-val" id="h-count">0건</div><div class="hs-lbl">발행 건수</div></div>
     <div class="hs"><div class="hs-val" id="h-density" style="color:#60a5fa">0%</div><div class="hs-lbl">네트워크 밀도</div></div>
     <div class="hs"><div class="hs-val" id="h-recip" style="color:#f59e0b">0%</div><div class="hs-lbl">상호 기여율</div></div>
+    <button id="btn-refresh" title="최신 데이터 불러오기">🔄 새로고침</button>
   </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="spin"></div>
+  <div class="load-txt">데이터 불러오는 중...</div>
 </div>
 
 <!-- APP -->
@@ -614,26 +642,44 @@ const MEMBERS = [
   { id:'m10', name:'진희주', color:'#f97316' },
 ];
 
-const TARGET = 200_000_000;
+const TARGET = 30_000_000;
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycby1nJIymgBmVAqcq6m2pBVvG2lHH2lgS7sT1E5w5PEqC2sSLkMEv7s8RE43NMVEQMX0/exec';
 
 // ─────────────────────────────────────────
 // STATE
 // ─────────────────────────────────────────
-let exchanges = loadData();
+let exchanges = [];
 let selMember = null;
 let editingId = null;
 let svgEl, gEl, zoomBeh, sim;
 
-
-function loadData() {
-  try {
-    const raw = localStorage.getItem('cm-token-net');
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  return [];
+// ─────────────────────────────────────────
+// GOOGLE SHEETS API
+// ─────────────────────────────────────────
+function showLoading(show) {
+  document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
 }
-function saveData() {
-  localStorage.setItem('cm-token-net', JSON.stringify(exchanges));
+
+async function loadData() {
+  try {
+    const res = await fetch(SHEET_URL, { redirect: 'follow' });
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch(e) {
+    console.warn('Sheets 로드 실패, localStorage 사용:', e);
+    try {
+      const raw = localStorage.getItem('cm-token-net');
+      return raw ? JSON.parse(raw) : [];
+    } catch(e2) { return []; }
+  }
+}
+
+function sheetPost(payload) {
+  return fetch(SHEET_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    body: JSON.stringify(payload)
+  }).catch(err => console.warn('Sheet 쓰기 실패:', err));
 }
 
 // ─────────────────────────────────────────
@@ -810,7 +856,7 @@ function renderTxLog() {
       if (confirm('이 발행 기록을 삭제할까요?')) {
         if (editingId === id) cancelEdit();
         exchanges = exchanges.filter(e => e.id !== id);
-        saveData();
+        sheetPost({ action: 'delete', id });
         renderAll();
         toast('발행 기록이 삭제되었습니다');
       }
@@ -1218,16 +1264,18 @@ document.getElementById('btn-add').addEventListener('click', () => {
     // ── 수정 모드
     const idx = exchanges.findIndex(e => e.id === editingId);
     if (idx !== -1) {
-      exchanges[idx] = { ...exchanges[idx], from, to, amount, date, reason, status };
+      const updated = { ...exchanges[idx], from, to, amount, date, reason, status };
+      exchanges[idx] = updated;
+      sheetPost({ action: 'update', data: updated });
     }
     cancelEdit();
-    saveData();
     renderAll();
     toast('✅ 발행 기록이 수정되었습니다');
   } else {
     // ── 신규 발행
-    exchanges.unshift({ id:'tx'+Date.now(), from, to, amount, date, reason, status });
-    saveData();
+    const newEx = { id:'tx'+Date.now(), from, to, amount, date, reason, status };
+    exchanges.unshift(newEx);
+    sheetPost({ action: 'add', data: newEx });
     renderAll();
     toast('💰 가치 토큰이 발행되었습니다!');
     document.getElementById('f-from').value   = '';
@@ -1242,7 +1290,7 @@ document.getElementById('btn-cancel').addEventListener('click', cancelEdit);
 document.getElementById('btn-clear-all').addEventListener('click', () => {
   if (!confirm('모든 거래 기록을 초기화할까요?')) return;
   exchanges = [];
-  saveData();
+  sheetPost({ action: 'clear' });
   renderAll();
   toast('발행 내역이 초기화되었습니다');
 });
@@ -1318,7 +1366,7 @@ function doLogin(pw) {
   enterApp();
 }
 
-function enterApp() {
+async function enterApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('header').style.display = 'flex';
   document.getElementById('app').style.display = 'flex';
@@ -1330,7 +1378,25 @@ function enterApp() {
   initMemberFilter();
   initMobNav();
   initNetwork();
+
+  showLoading(true);
+  exchanges = await loadData();
+  showLoading(false);
   renderAll();
+
+  // 30초마다 자동 새로고침
+  setInterval(async () => {
+    exchanges = await loadData();
+    renderAll();
+  }, 30000);
+
+  document.getElementById('btn-refresh').addEventListener('click', async () => {
+    showLoading(true);
+    exchanges = await loadData();
+    showLoading(false);
+    renderAll();
+    toast('✅ 최신 데이터로 업데이트되었습니다');
+  });
 }
 
 // Login events
