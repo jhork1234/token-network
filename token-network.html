@@ -489,12 +489,12 @@ textarea.form-ctrl { resize:vertical; }
     </div>
 
     <div class="section">
-      <div class="section-title">🏆 기여도 TOP 5 (받은 토큰)</div>
+      <div class="section-title">🏆 기여도 TOP 5 (기여한 토큰)</div>
       <div id="rank-recv"></div>
     </div>
 
     <div class="section">
-      <div class="section-title">🚀 발행 TOP 5 (보낸 토큰)</div>
+      <div class="section-title">🚀 발행 TOP 5 (발행받은 토큰)</div>
       <div id="rank-sent"></div>
     </div>
 
@@ -1320,8 +1320,8 @@ function renderAll() {
   const s = computeStats();
   renderHeader(s);
   renderMemberList(s.mStats);
-  renderRanking('rank-recv', MEMBERS.map(m => ({ ...m, v: s.mStats[m.id].recv })).sort((a,b)=>b.v-a.v));
-  renderRanking('rank-sent', MEMBERS.map(m => ({ ...m, v: s.mStats[m.id].sent })).sort((a,b)=>b.v-a.v));
+  renderRanking('rank-recv', MEMBERS.map(m => ({ ...m, v: s.mStats[m.id].sent })).sort((a,b)=>b.v-a.v));
+  renderRanking('rank-sent', MEMBERS.map(m => ({ ...m, v: s.mStats[m.id].recv })).sort((a,b)=>b.v-a.v));
   renderTxLog();
   syncMemberFilter();
 
