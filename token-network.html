@@ -769,7 +769,7 @@ function renderMemberList(mStats) {
       <div class="avatar" style="background:${m.color}">${initial(m.name)}</div>
       <div class="member-info">
         <div class="member-name">${m.name}</div>
-        <div class="member-sub">받음 <span class="member-badge">${fmt(st.recv)}</span> · 보냄 <span style="color:#60a5fa;font-weight:600">${fmt(st.sent)}</span></div>
+        <div class="member-sub">받음 <span class="member-badge">${fmt(st.sent)}</span> · 보냄 <span style="color:#60a5fa;font-weight:600">${fmt(st.recv)}</span></div>
       </div>
     `;
     row.addEventListener('click', () => {
