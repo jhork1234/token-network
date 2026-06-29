@@ -939,7 +939,7 @@ function drawNetwork(W, H) {
   if (!gEl) return;
   const { nodes, links } = buildGraph();
 
-  const maxTotal = Math.max(...nodes.map(n=>n.total), 1);
+  const maxTotal = Math.max(...nodes.map(n=>n.sent), 1);
   const maxAmt   = Math.max(...links.map(l=>l.amount), 1);
   const rScale   = d3.scaleSqrt().domain([0, maxTotal]).range([18, 42]);
   const lScale   = d3.scaleLinear().domain([0, maxAmt]).range([1.5, 7]);
@@ -950,7 +950,7 @@ function drawNetwork(W, H) {
     .force('link', d3.forceLink(links).id(d=>d.id).distance(170))
     .force('charge', d3.forceManyBody().strength(-500))
     .force('center', d3.forceCenter(W/2, H/2))
-    .force('collision', d3.forceCollide().radius(d => rScale(d.total)+18));
+    .force('collision', d3.forceCollide().radius(d => rScale(d.sent)+18));
 
   gEl.selectAll('*').remove();
 
@@ -983,14 +983,14 @@ function drawNetwork(W, H) {
 
   // Glow halo
   node.append('circle')
-    .attr('r', d => rScale(d.total)+10)
+    .attr('r', d => rScale(d.sent)+10)
     .attr('fill', d => d.color)
     .attr('opacity', d => nodeHalo(d))
     .attr('filter','url(#glow)');
 
   // Main circle
   node.append('circle')
-    .attr('r', d => rScale(d.total))
+    .attr('r', d => rScale(d.sent))
     .attr('fill', d => d.color)
     .attr('opacity', d => nodeOpacity(d))
     .attr('stroke', d => d.id===selMember ? '#fff' : 'transparent')
@@ -998,9 +998,9 @@ function drawNetwork(W, H) {
 
   // Amount label inside
   node.append('text')
-    .text(d => d.total > 0 ? fmt(d.total) : '')
+    .text(d => d.sent > 0 ? fmt(d.sent) : '')
     .attr('text-anchor','middle').attr('dominant-baseline','middle')
-    .attr('font-size', d => rScale(d.total)>30 ? '10px' : '9px')
+    .attr('font-size', d => rScale(d.sent)>30 ? '10px' : '9px')
     .attr('fill','rgba(255,255,255,.85)').attr('font-weight','600')
     .attr('pointer-events','none');
 
@@ -1008,7 +1008,7 @@ function drawNetwork(W, H) {
   node.append('text')
     .text(d => d.name)
     .attr('text-anchor','middle')
-    .attr('dy', d => rScale(d.total)+15)
+    .attr('dy', d => rScale(d.sent)+15)
     .attr('font-size','12px').attr('fill',d => nodeOpacity(d)>0.5 ? '#e2e8f0' : '#64748b')
     .attr('font-weight', d => d.id===selMember ? '700' : '400')
     .attr('pointer-events','none');
