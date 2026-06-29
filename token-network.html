@@ -685,6 +685,11 @@ function sheetPost(payload) {
 // ─────────────────────────────────────────
 // UTILS
 // ─────────────────────────────────────────
+function fmtDate(d) {
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return d;
+  return `${dt.getFullYear()}년 ${dt.getMonth()+1}월 ${dt.getDate()}일`;
+}
 function fmt(n) {
   if (n >= 1e8) return (n/1e8).toFixed(1) + '억원';
   if (n >= 1e4) return (n/1e4).toFixed(0) + '만원';
@@ -834,7 +839,7 @@ function renderTxLog() {
         </div>
         <div class="tx-meta">
           ${stEl}
-          <span class="tx-date">${e.date}</span>
+          <span class="tx-date">${fmtDate(e.date)}</span>
         </div>
         <div class="tx-reason">${e.reason}</div>
       </div>
