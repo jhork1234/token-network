@@ -1,0 +1,1375 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💎 가치토큰 기여 네트워크 — Checkmate 48기</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+:root {
+  --bg-0: #080812;
+  --bg-1: #0f0f1e;
+  --bg-2: #16182c;
+  --bg-3: #1e2140;
+  --border: #2a2d4a;
+  --border-light: #3a3d5c;
+  --text-1: #e8eaf6;
+  --text-2: #94a3b8;
+  --text-3: #64748b;
+  --accent: #7c3aed;
+  --accent2: #3b82f6;
+  --green: #10b981;
+  --red: #ef4444;
+  --yellow: #fbbf24;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; overflow:hidden; font-family:'Apple SD Gothic Neo','Malgun Gothic','Segoe UI',sans-serif; background:var(--bg-0); color:var(--text-1); font-size:14px; }
+
+/* ── HEADER ── */
+#header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 24px; background:var(--bg-1);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+#header h1 { font-size:18px; font-weight:700; letter-spacing:-0.3px; }
+#header h1 span { background:linear-gradient(135deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.header-sub { font-size:11px; color:var(--text-3); margin-top:2px; }
+.hstats { display:flex; gap:28px; }
+.hs { text-align:center; }
+.hs-val { font-size:18px; font-weight:700; color:var(--green); }
+.hs-lbl { font-size:10px; color:var(--text-3); margin-top:1px; }
+
+/* ── LAYOUT ── */
+#app { display:flex; height:calc(100vh - 57px); overflow:hidden; }
+
+/* ── SIDE PANELS ── */
+.panel {
+  width:260px; flex-shrink:0;
+  background:var(--bg-1); overflow-y:auto; overflow-x:hidden;
+  display:flex; flex-direction:column; gap:0;
+}
+.panel::-webkit-scrollbar { width:4px; }
+.panel::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+#left-panel { border-right:1px solid var(--border); }
+#right-panel { border-left:1px solid var(--border); width:300px; }
+
+.section { padding:14px 16px; border-bottom:1px solid var(--border); }
+.section-title {
+  font-size:11px; font-weight:600; color:var(--text-3);
+  text-transform:uppercase; letter-spacing:0.06em;
+  margin-bottom:10px; display:flex; align-items:center; gap:6px;
+}
+
+/* ── MEMBER LIST ── */
+.member-row {
+  display:flex; align-items:center; gap:8px;
+  padding:6px 8px; border-radius:8px; cursor:pointer;
+  transition:background .15s; margin-bottom:2px;
+}
+.member-row:hover { background:rgba(124,58,237,.1); }
+.member-row.active { background:rgba(124,58,237,.18); outline:1px solid rgba(124,58,237,.4); }
+.avatar {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.member-info { flex:1; min-width:0; }
+.member-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.member-sub { font-size:10px; color:var(--text-3); margin-top:1px; }
+.member-badge { font-size:10px; color:var(--green); font-weight:600; }
+
+/* ── RANKINGS ── */
+.rank-item {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 0; border-bottom:1px solid var(--border);
+}
+.rank-item:last-child { border-bottom:none; }
+.rank-no { font-size:15px; font-weight:700; width:20px; text-align:center; flex-shrink:0; }
+.r1 { color:#ffd700; }
+.r2 { color:#c0c0c0; }
+.r3 { color:#cd7f32; }
+.rank-bar-wrap { flex:1; }
+.rank-name { font-size:12px; display:flex; justify-content:space-between; margin-bottom:3px; }
+.rank-bar { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.rank-fill { height:100%; border-radius:3px; transition:width .6s ease; }
+
+/* ── LIQUIDITY ── */
+.liq-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.liq-label { font-size:12px; color:var(--text-2); }
+.liq-val { font-size:13px; font-weight:600; }
+.liq-bar { height:8px; background:var(--bg-3); border-radius:4px; overflow:hidden; }
+.liq-fill { height:100%; background:linear-gradient(90deg,#7c3aed,#3b82f6,#10b981); border-radius:4px; transition:width .6s ease; }
+.liq-pct { text-align:right; font-size:11px; color:var(--green); margin-top:4px; }
+
+/* ── CAT STATS ── */
+.cat-item { margin-bottom:9px; }
+.cat-row { display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px; }
+.cat-fill { height:5px; border-radius:3px; transition:width .6s ease; }
+
+/* ── NETWORK ── */
+#canvas-wrap {
+  flex:1; position:relative; overflow:hidden; background:var(--bg-0);
+}
+#net-svg { width:100%; height:100%; }
+
+.net-overlay {
+  position:absolute; pointer-events:none;
+  background:rgba(15,15,30,.85); border:1px solid var(--border);
+  border-radius:10px; backdrop-filter:blur(8px); padding:12px 14px;
+  font-size:12px;
+}
+#info-box { top:16px; left:16px; }
+.im { display:flex; justify-content:space-between; gap:18px; margin-bottom:5px; }
+.im:last-child { margin-bottom:0; }
+.im-l { color:var(--text-3); }
+.im-v { font-weight:600; }
+
+#legend { bottom:16px; left:16px; }
+.leg-item { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+.leg-item:last-child { margin-bottom:0; }
+.leg-line { width:28px; height:3px; border-radius:2px; }
+.leg-dot { width:12px; height:12px; border-radius:50%; }
+
+#net-controls {
+  position:absolute; top:16px; right:16px;
+  display:flex; flex-direction:column; gap:6px; pointer-events:all;
+}
+.ctrl-btn {
+  width:34px; height:34px; background:var(--bg-2);
+  border:1px solid var(--border); border-radius:8px;
+  color:var(--text-1); font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all .15s;
+}
+.ctrl-btn:hover { background:var(--bg-3); border-color:var(--accent); }
+
+/* ── TOOLTIP ── */
+#tooltip {
+  position:absolute; display:none; pointer-events:none;
+  background:rgba(22,24,44,.97); border:1px solid var(--accent);
+  border-radius:10px; padding:12px 14px; font-size:12px;
+  z-index:200; min-width:180px; max-width:260px;
+  box-shadow:0 4px 24px rgba(0,0,0,.5);
+}
+.tt-title { font-size:14px; font-weight:700; margin-bottom:8px; }
+.tt-row { display:flex; justify-content:space-between; gap:12px; margin-bottom:4px; }
+.tt-lbl { color:var(--text-3); }
+.tt-val { font-weight:600; }
+
+/* ── FORM ── */
+.form-group { margin-bottom:11px; }
+.form-label { font-size:11px; color:var(--text-3); display:block; margin-bottom:5px; }
+.form-ctrl {
+  width:100%; background:var(--bg-2); border:1px solid var(--border);
+  border-radius:7px; padding:7px 10px; color:var(--text-1);
+  font-size:13px; outline:none; transition:border-color .15s;
+  font-family:inherit;
+}
+.form-ctrl:focus { border-color:var(--accent); }
+select.form-ctrl option { background:var(--bg-1); }
+textarea.form-ctrl { resize:vertical; }
+.btn-add {
+  width:100%; padding:9px; background:linear-gradient(135deg,#7c3aed,#3b82f6);
+  border:none; border-radius:8px; color:#fff; font-size:13px;
+  font-weight:600; cursor:pointer; transition:opacity .15s; font-family:inherit;
+}
+.btn-add:hover { opacity:.9; }
+.btn-clear {
+  width:100%; padding:7px; background:transparent;
+  border:1px solid var(--border); border-radius:7px;
+  color:var(--text-3); font-size:12px; cursor:pointer;
+  transition:all .15s; font-family:inherit; margin-top:6px;
+}
+.btn-clear:hover { border-color:var(--red); color:var(--red); }
+
+/* ── FILTER TAGS ── */
+.filter-wrap { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.ftag {
+  padding:3px 9px; border-radius:20px; font-size:11px; cursor:pointer;
+  border:1px solid var(--border); background:transparent;
+  color:var(--text-3); transition:all .15s; font-family:inherit;
+}
+.ftag.on { border-color:var(--accent); background:rgba(124,58,237,.18); color:#a78bfa; }
+
+/* ── TX LOG ── */
+.tx-item {
+  padding:10px 0; border-bottom:1px solid var(--border);
+}
+.tx-item:last-child { border-bottom:none; }
+.tx-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+.tx-ppl { font-size:13px; }
+.tx-amt { font-size:13px; font-weight:700; color:var(--green); }
+.tx-meta { display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.tx-cat {
+  font-size:10px; padding:2px 7px; border-radius:4px;
+  background:rgba(124,58,237,.2); color:#a78bfa;
+}
+.tx-date { font-size:10px; color:var(--text-3); }
+.tx-status-ok { font-size:10px; color:var(--green); }
+.tx-status-pending { font-size:10px; color:var(--yellow); }
+.tx-reason { font-size:11px; color:var(--text-3); line-height:1.5; }
+.tx-actions {
+  display:flex; gap:2px; align-items:center; flex-shrink:0;
+}
+.tx-del, .tx-edit {
+  background:none; border:none; color:var(--text-3);
+  cursor:pointer; font-size:13px; padding:2px 5px;
+  line-height:1; border-radius:4px; transition:all .15s;
+}
+.tx-del:hover  { color:var(--red); background:rgba(239,68,68,.1); }
+.tx-edit:hover { color:#60a5fa;    background:rgba(96,165,250,.1); }
+
+/* Edit mode indicator */
+.edit-mode-banner {
+  display:none; padding:8px 10px; background:rgba(96,165,250,.12);
+  border:1px solid rgba(96,165,250,.35); border-radius:7px;
+  font-size:11px; color:#60a5fa; margin-bottom:10px; line-height:1.5;
+}
+.edit-mode-banner.visible { display:block; }
+.btn-cancel {
+  width:100%; padding:7px; background:transparent;
+  border:1px solid var(--border); border-radius:7px;
+  color:var(--text-3); font-size:12px; cursor:pointer;
+  transition:all .15s; font-family:inherit; margin-top:6px;
+  display:none;
+}
+.btn-cancel:hover { border-color:#60a5fa; color:#60a5fa; }
+.btn-cancel.visible { display:block; }
+
+.empty-state { text-align:center; color:var(--text-3); padding:24px 0; font-size:13px; }
+
+/* ── MOBILE NAV ── */
+#mob-nav {
+  display:none;
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--bg-1); border-top:1px solid var(--border);
+  z-index:600; padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.mob-tab {
+  flex:1; padding:8px 2px 10px;
+  background:none; border:none; color:var(--text-3);
+  font-size:10px; cursor:pointer; font-family:inherit;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  transition:color .15s;
+}
+.mob-icon { font-size:20px; line-height:1; }
+.mob-tab.active { color:#a78bfa; }
+.mob-tab.active .mob-icon { filter:drop-shadow(0 0 6px #7c3aed); }
+
+/* ── RESPONSIVE ── */
+@media (max-width:768px) {
+  /* Nav visible */
+  #mob-nav { display:flex; }
+
+  /* Compact header */
+  #header {
+    padding:10px 14px;
+    flex-wrap:wrap; gap:6px;
+    min-height:unset;
+  }
+  #header h1 { font-size:15px; }
+  .header-sub { font-size:9px; }
+  .hstats {
+    width:100%; gap:0;
+    overflow-x:auto; flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    justify-content:space-between;
+  }
+  .hstats::-webkit-scrollbar { display:none; }
+  .hs { min-width:64px; padding:0 4px; }
+  .hs-val { font-size:14px; }
+  .hs-lbl { font-size:9px; }
+
+  /* App: single column, fill space between header & nav */
+  #app {
+    flex-direction:column;
+    height:calc(100dvh - var(--hdr-h, 80px) - 58px);
+    overflow:hidden;
+  }
+
+  /* Panels fill full width */
+  .panel {
+    width:100%; flex-shrink:0;
+    border:none; height:100%;
+    overflow-y:auto; overflow-x:hidden;
+  }
+  #left-panel  { border-right:none; }
+  #right-panel { border-left:none; width:100%; }
+
+  /* Canvas full height */
+  #canvas-wrap { flex:1; min-height:0; }
+
+  /* Hide desktop-only overlays on small screens */
+  #info-box, #legend { display:none; }
+  #sel-bar { font-size:11px; bottom:8px; white-space:normal; text-align:center; width:90%; }
+
+  /* Controls closer to edge */
+  #net-controls { top:10px; right:10px; gap:5px; }
+  .ctrl-btn { width:38px; height:38px; font-size:16px; }
+
+  /* Sections padding */
+  .section { padding:12px 12px; }
+  .section-title { font-size:10px; margin-bottom:8px; }
+
+  /* Login card */
+  .login-card { width:calc(100% - 32px); padding:28px 20px; }
+  .login-title { font-size:16px; }
+
+  /* Tooltip smaller */
+  #tooltip { font-size:11px; min-width:160px; }
+
+  /* Toast */
+  #toast { bottom:70px; right:14px; font-size:12px; padding:10px 14px; }
+}
+
+/* Tablet */
+@media (min-width:769px) and (max-width:1100px) {
+  .panel { width:220px; }
+  #right-panel { width:260px; }
+  .hstats { gap:16px; }
+}
+
+/* ── LOGIN SCREEN ── */
+#login-screen {
+  position:fixed; inset:0; z-index:9999;
+  background:var(--bg-0);
+  display:flex; align-items:center; justify-content:center;
+}
+.login-card {
+  width:340px; padding:40px 36px;
+  background:var(--bg-1);
+  border:1px solid var(--border);
+  border-radius:20px;
+  box-shadow:0 0 60px rgba(124,58,237,.15);
+  text-align:center;
+}
+.login-logo { font-size:40px; margin-bottom:16px; }
+.login-title { font-size:18px; font-weight:700; margin-bottom:6px; }
+.login-sub { font-size:12px; color:var(--text-3); margin-bottom:32px; }
+.login-input-wrap { position:relative; margin-bottom:12px; }
+#login-pw {
+  width:100%; padding:12px 44px 12px 16px;
+  background:var(--bg-2); border:1px solid var(--border);
+  border-radius:10px; color:var(--text-1);
+  font-size:18px; letter-spacing:4px; text-align:center;
+  outline:none; transition:border-color .2s; font-family:inherit;
+}
+#login-pw:focus { border-color:var(--accent); }
+#login-pw::placeholder { letter-spacing:0; font-size:13px; color:var(--text-3); }
+.pw-toggle {
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:var(--text-3);
+  cursor:pointer; font-size:16px; padding:4px;
+}
+.pw-toggle:hover { color:var(--text-1); }
+#login-btn {
+  width:100%; padding:12px;
+  background:linear-gradient(135deg,#7c3aed,#3b82f6);
+  border:none; border-radius:10px;
+  color:#fff; font-size:15px; font-weight:700;
+  cursor:pointer; transition:opacity .15s; font-family:inherit;
+  margin-bottom:12px;
+}
+#login-btn:hover { opacity:.88; }
+#login-err {
+  font-size:12px; color:var(--red);
+  min-height:18px; transition:all .2s;
+}
+@keyframes shake {
+  0%,100%{ transform:translateX(0); }
+  20%,60%{ transform:translateX(-6px); }
+  40%,80%{ transform:translateX(6px); }
+}
+.shake { animation:shake .35s ease; }
+
+/* ── TOAST ── */
+#toast {
+  position:fixed; bottom:28px; right:28px;
+  background:var(--bg-2); border:1px solid var(--green);
+  border-radius:10px; padding:12px 20px; font-size:13px; color:var(--green);
+  z-index:9999; transform:translateY(60px); opacity:0;
+  transition:all .3s ease; pointer-events:none;
+}
+#toast.show { transform:translateY(0); opacity:1; }
+#toast.err { border-color:var(--red); color:var(--red); }
+
+/* ── SELECTED MEMBER OVERLAY ── */
+#sel-bar {
+  position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
+  background:rgba(124,58,237,.15); border:1px solid rgba(124,58,237,.4);
+  border-radius:10px; padding:8px 16px; font-size:12px; color:#a78bfa;
+  display:none; pointer-events:none; backdrop-filter:blur(6px);
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">💎</div>
+    <div class="login-title">가치토큰 기여 네트워크</div>
+    <div class="login-sub">Checkmate 48기 · Stanford Mastermind Group</div>
+    <div class="login-input-wrap">
+      <input type="password" id="login-pw" placeholder="비밀번호 입력" autocomplete="off" />
+      <button class="pw-toggle" id="pw-toggle" tabindex="-1">👁</button>
+    </div>
+    <button id="login-btn">로그인</button>
+    <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div id="header" style="display:none">
+  <div>
+    <h1>💎 <span>가치토큰 기여 네트워크</span></h1>
+    <div class="header-sub">Checkmate 48기 · 토큰은 누적됩니다 — 상쇄 없이 모든 기여가 기록됩니다</div>
+  </div>
+  <div class="hstats">
+    <div class="hs"><div class="hs-val" id="h-total">0원</div><div class="hs-lbl">총 발행량 (누적)</div></div>
+    <div class="hs"><div class="hs-val" id="h-count">0건</div><div class="hs-lbl">발행 건수</div></div>
+    <div class="hs"><div class="hs-val" id="h-density" style="color:#60a5fa">0%</div><div class="hs-lbl">네트워크 밀도</div></div>
+    <div class="hs"><div class="hs-val" id="h-recip" style="color:#f59e0b">0%</div><div class="hs-lbl">상호 기여율</div></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+
+  <!-- LEFT PANEL -->
+  <div class="panel" id="left-panel">
+
+    <div class="section">
+      <div class="section-title">📊 목표 발행량 달성률</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:8px;line-height:1.5">
+        💡 토큰은 상쇄되지 않고 <strong style="color:#a78bfa">누적</strong>됩니다.<br>
+        A→B 100만 + B→A 100만 = 총 200만 발행
+      </div>
+      <div class="liq-row">
+        <span class="liq-label">목표 발행량</span>
+        <span class="liq-val" id="target-lbl">200,000,000원</span>
+      </div>
+      <div class="liq-bar"><div class="liq-fill" id="liq-fill" style="width:0%"></div></div>
+      <div class="liq-pct" id="liq-pct">0%</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">👥 팀 멤버 (클릭해서 필터)</div>
+      <div id="member-list"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🏆 기여도 TOP 5 (받은 토큰)</div>
+      <div id="rank-recv"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🚀 발행 TOP 5 (보낸 토큰)</div>
+      <div id="rank-sent"></div>
+    </div>
+
+
+  </div>
+
+  <!-- NETWORK CANVAS -->
+  <div id="canvas-wrap">
+    <svg id="net-svg"></svg>
+
+    <!-- Info overlay -->
+    <div class="net-overlay" id="info-box">
+      <div class="im"><span class="im-l">연결 쌍 / 전체 가능</span><span class="im-v" id="inf-pairs">0 / 45</span></div>
+      <div class="im"><span class="im-l">발행 완료</span><span class="im-v" id="inf-done">0건</span></div>
+      <div class="im"><span class="im-l">발행 대기</span><span class="im-v" id="inf-pend" style="color:var(--yellow)">0건</span></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="net-overlay" id="legend">
+      <div class="leg-item">
+        <div class="leg-dot" style="background:#7c3aed"></div>
+        <span style="color:var(--text-2)">멤버 노드 (크기 = 총 발행량)</span>
+      </div>
+      <div class="leg-item">
+        <div class="leg-line" style="background:#10b981"></div>
+        <span style="color:var(--text-2)">완료된 발행</span>
+      </div>
+      <div class="leg-item">
+        <div class="leg-line" style="background:#ef4444; border-top:2px dashed #ef4444; height:0"></div>
+        <span style="color:var(--text-2)">대기 중인 발행</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div id="net-controls">
+      <button class="ctrl-btn" id="btn-zoomin" title="확대">+</button>
+      <button class="ctrl-btn" id="btn-zoomout" title="축소">−</button>
+      <button class="ctrl-btn" id="btn-reset" title="초기화">⟳</button>
+      <button class="ctrl-btn" id="btn-fs" title="전체화면">⛶</button>
+    </div>
+
+    <!-- Tooltip -->
+    <div id="tooltip"></div>
+
+    <!-- Selected member hint -->
+    <div id="sel-bar">노드를 클릭해 교환 연결을 필터링하세요 · 다시 클릭하면 해제</div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel" id="right-panel">
+
+    <div class="section" id="form-section">
+      <div class="section-title">💰 가치 토큰 발행하기</div>
+      <div style="font-size:11px;color:var(--text-3);margin-bottom:10px;line-height:1.5;padding:8px;background:var(--bg-3);border-radius:6px">
+        도움을 <strong style="color:#a78bfa">받은 사람</strong>이 토큰을 발행해<br>도움을 <strong style="color:#10b981">준 사람</strong>에게 보냅니다
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">발행자 (도움 받은 팀원)</label>
+        <select class="form-ctrl" id="f-from"><option value="">선택</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">기여자 (도움 준 팀원)</label>
+        <select class="form-ctrl" id="f-to"><option value="">선택</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">금액</label>
+        <select class="form-ctrl" id="f-amt">
+          <option value="50000">5만원 — 소소한 도움</option>
+          <option value="100000">10만원 — 유용한 정보</option>
+          <option value="300000">30만원 — 의미있는 기여</option>
+          <option value="500000" selected>50만원 — 중요한 도움</option>
+          <option value="1000000">100만원 — 결정적 기여</option>
+          <option value="custom">직접 입력</option>
+        </select>
+      </div>
+      <div class="form-group" id="custom-wrap" style="display:none">
+        <label class="form-label">직접 입력 (원)</label>
+        <input type="number" class="form-ctrl" id="f-custom" placeholder="예: 200000" min="1000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">날짜</label>
+        <input type="date" class="form-ctrl" id="f-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">감사 이유 (10자 이상)</label>
+        <textarea class="form-ctrl" id="f-reason" rows="3" placeholder="어떤 도움을 받았는지 적어주세요"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">상태</label>
+        <select class="form-ctrl" id="f-status">
+          <option value="completed">✅ 발행 완료</option>
+          <option value="pending">⏳ 발행 대기</option>
+        </select>
+      </div>
+      <div class="edit-mode-banner" id="edit-banner">
+        ✏️ <strong>수정 모드</strong> — 내용을 변경한 뒤 저장하세요
+      </div>
+      <button class="btn-add" id="btn-add">💰 가치 토큰 발행</button>
+      <button class="btn-cancel" id="btn-cancel">✕ 수정 취소</button>
+    </div>
+
+    <div class="section" id="log-section" style="flex:1">
+      <div class="section-title">📋 발행 내역 로그</div>
+      <div class="filter-wrap" id="member-filter"></div>
+      <div id="tx-log"></div>
+      <button class="btn-clear" id="btn-clear-all" style="display:none">🗑 발행 기록 초기화</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav id="mob-nav">
+  <button class="mob-tab active" data-tab="net">
+    <span class="mob-icon">🕸</span><span>네트워크</span>
+  </button>
+  <button class="mob-tab" data-tab="stat">
+    <span class="mob-icon">👥</span><span>멤버</span>
+  </button>
+  <button class="mob-tab" data-tab="form">
+    <span class="mob-icon">💰</span><span>발행하기</span>
+  </button>
+  <button class="mob-tab" data-tab="log">
+    <span class="mob-icon">📋</span><span>내역</span>
+  </button>
+</nav>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────
+// MEMBERS
+// ─────────────────────────────────────────
+const MEMBERS = [
+  { id:'m01', name:'김영훈', color:'#6366f1' },
+  { id:'m02', name:'김소운', color:'#ec4899' },
+  { id:'m03', name:'고일민', color:'#10b981' },
+  { id:'m04', name:'황정웅', color:'#f59e0b' },
+  { id:'m05', name:'김인혜', color:'#ef4444' },
+  { id:'m06', name:'김민준', color:'#3b82f6' },
+  { id:'m07', name:'옥주협', color:'#8b5cf6' },
+  { id:'m08', name:'서성복', color:'#06b6d4' },
+  { id:'m09', name:'이하늘', color:'#84cc16' },
+  { id:'m10', name:'진희주', color:'#f97316' },
+];
+
+const TARGET = 200_000_000;
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let exchanges = loadData();
+let selMember = null;
+let editingId = null;
+let svgEl, gEl, zoomBeh, sim;
+
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem('cm-token-net');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return [];
+}
+function saveData() {
+  localStorage.setItem('cm-token-net', JSON.stringify(exchanges));
+}
+
+// ─────────────────────────────────────────
+// UTILS
+// ─────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1e8) return (n/1e8).toFixed(1) + '억원';
+  if (n >= 1e4) return (n/1e4).toFixed(0) + '만원';
+  return n.toLocaleString() + '원';
+}
+function getMember(id) { return MEMBERS.find(m => m.id === id); }
+function initial(name) { return name.slice(0,1); }
+
+let _toastTimer;
+function toast(msg, isErr=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = isErr ? 'err show' : 'show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.className = '', 3000);
+}
+
+// ─────────────────────────────────────────
+// STATS
+// ─────────────────────────────────────────
+function computeStats() {
+  const done = exchanges.filter(e => e.status === 'completed');
+  const totalCirc = done.reduce((s,e) => s+e.amount, 0);
+  const totalCount = exchanges.length;
+
+  const mStats = {};
+  MEMBERS.forEach(m => mStats[m.id] = { recv:0, sent:0 });
+  done.forEach(e => {
+    mStats[e.from].sent += e.amount;
+    mStats[e.to].recv   += e.amount;
+  });
+
+  const pairs = new Set(done.map(e => [e.from,e.to].sort().join('|')));
+  const n = MEMBERS.length;
+  const possible = n*(n-1)/2;
+  const density = possible > 0 ? pairs.size/possible : 0;
+
+  const directed = new Set(done.map(e => `${e.from}-${e.to}`));
+  let recipCount = 0;
+  directed.forEach(p => {
+    const [a,b] = p.split('-');
+    if (directed.has(`${b}-${a}`)) recipCount++;
+  });
+  const reciprocity = directed.size > 0 ? recipCount/directed.size : 0;
+
+  return { totalCirc, totalCount, density, reciprocity, mStats,
+           pairsCount: pairs.size, possible,
+           doneCount: done.length, pendingCount: exchanges.filter(e=>e.status==='pending').length };
+}
+
+// ─────────────────────────────────────────
+// RENDER UI
+// ─────────────────────────────────────────
+function renderHeader(s) {
+  document.getElementById('h-total').textContent = fmt(s.totalCirc);
+  document.getElementById('h-count').textContent = s.totalCount + '건';
+  document.getElementById('h-density').textContent = (s.density*100).toFixed(0)+'%';
+  document.getElementById('h-recip').textContent   = (s.reciprocity*100).toFixed(0)+'%';
+
+  const pct = Math.min(s.totalCirc/TARGET*100, 100);
+  document.getElementById('liq-fill').style.width = pct+'%';
+  document.getElementById('liq-pct').textContent = pct.toFixed(1)+'%';
+
+  document.getElementById('inf-pairs').textContent = `${s.pairsCount} / ${s.possible}`;
+  document.getElementById('inf-done').textContent  = s.doneCount+'건';
+  document.getElementById('inf-pend').textContent  = s.pendingCount+'건';
+}
+
+function renderMemberList(mStats) {
+  const el = document.getElementById('member-list');
+  el.innerHTML = '';
+  MEMBERS.forEach(m => {
+    const st = mStats[m.id];
+    const row = document.createElement('div');
+    row.className = 'member-row' + (selMember===m.id ? ' active' : '');
+    row.innerHTML = `
+      <div class="avatar" style="background:${m.color}">${initial(m.name)}</div>
+      <div class="member-info">
+        <div class="member-name">${m.name}</div>
+        <div class="member-sub">받음 <span class="member-badge">${fmt(st.recv)}</span> · 보냄 <span style="color:#60a5fa;font-weight:600">${fmt(st.sent)}</span></div>
+      </div>
+    `;
+    row.addEventListener('click', () => {
+      selMember = selMember === m.id ? null : m.id;
+      renderAll();
+    });
+    el.appendChild(row);
+  });
+}
+
+function renderRanking(elId, list) {
+  const el = document.getElementById(elId);
+  el.innerHTML = '';
+  const maxV = Math.max(...list.map(d=>d.v), 1);
+  list.slice(0,5).forEach((d,i) => {
+    const cls = i===0?'r1':i===1?'r2':i===2?'r3':'';
+    const pct = (d.v/maxV*100).toFixed(1);
+    const row = document.createElement('div');
+    row.className = 'rank-item';
+    row.innerHTML = `
+      <div class="rank-no ${cls}">${i+1}</div>
+      <div class="avatar" style="background:${d.color};width:26px;height:26px;font-size:11px">${initial(d.name)}</div>
+      <div class="rank-bar-wrap">
+        <div class="rank-name">
+          <span>${d.name}</span>
+          <span style="color:${d.color};font-weight:700">${fmt(d.v)}</span>
+        </div>
+        <div class="rank-bar"><div class="rank-fill" style="width:${pct}%;background:${d.color}"></div></div>
+      </div>
+    `;
+    el.appendChild(row);
+  });
+}
+
+
+function renderTxLog() {
+  const el = document.getElementById('tx-log');
+  let list = [...exchanges];
+  if (selMember) list = list.filter(e => e.from===selMember || e.to===selMember);
+  list.sort((a,b) => new Date(b.date)-new Date(a.date));
+
+  if (list.length === 0) {
+    el.innerHTML = '<div class="empty-state">거래 내역이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = list.map(e => {
+    const fm = getMember(e.from), tm = getMember(e.to);
+    if (!fm||!tm) return '';
+    const stEl = e.status==='completed'
+      ? '<span class="tx-status-ok">✅ 완료</span>'
+      : '<span class="tx-status-pending">⏳ 대기</span>';
+    return `
+      <div class="tx-item" data-id="${e.id}">
+        <div class="tx-top">
+          <span class="tx-ppl">
+            <span style="color:${fm.color};font-weight:600">${fm.name}</span>
+            <span style="color:var(--text-3)"> → </span>
+            <span style="color:${tm.color};font-weight:600">${tm.name}</span>
+          </span>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <span class="tx-amt">${fmt(e.amount)}</span>
+            <div class="tx-actions">
+              <button class="tx-edit" data-id="${e.id}" title="수정">✏️</button>
+              <button class="tx-del"  data-id="${e.id}" title="삭제">×</button>
+            </div>
+          </div>
+        </div>
+        <div class="tx-meta">
+          ${stEl}
+          <span class="tx-date">${e.date}</span>
+        </div>
+        <div class="tx-reason">${e.reason}</div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.tx-edit').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const record = exchanges.find(e => e.id === btn.dataset.id);
+      if (record) populateEditForm(record);
+    });
+  });
+
+  el.querySelectorAll('.tx-del').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const id = btn.dataset.id;
+      if (confirm('이 발행 기록을 삭제할까요?')) {
+        if (editingId === id) cancelEdit();
+        exchanges = exchanges.filter(e => e.id !== id);
+        saveData();
+        renderAll();
+        toast('발행 기록이 삭제되었습니다');
+      }
+    });
+  });
+}
+
+// ─────────────────────────────────────────
+// D3 NETWORK
+// ─────────────────────────────────────────
+function buildGraph() {
+  const done = exchanges.filter(e => e.status==='completed');
+  const mStats = {};
+  MEMBERS.forEach(m => mStats[m.id] = { recv:0, sent:0 });
+  done.forEach(e => {
+    mStats[e.from].sent += e.amount;
+    mStats[e.to].recv   += e.amount;
+  });
+
+  const nodes = MEMBERS.map(m => ({
+    ...m,
+    recv: mStats[m.id].recv,
+    sent: mStats[m.id].sent,
+    total: mStats[m.id].recv + mStats[m.id].sent,
+  }));
+
+  const edgeMap = {};
+  exchanges.forEach(e => {
+    const key = `${e.from}|${e.to}`;
+    if (!edgeMap[key]) {
+      edgeMap[key] = {
+        source: e.from, target: e.to,
+        amount: 0, count: 0, status: e.status, cats: new Set(),
+      };
+    }
+    edgeMap[key].amount += e.amount;
+    edgeMap[key].count++;
+    if (e.status==='completed') edgeMap[key].status = 'completed';
+  });
+
+  return { nodes, links: Object.values(edgeMap) };
+}
+
+function initNetwork() {
+  const wrap = document.getElementById('canvas-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+
+  d3.select('#net-svg').selectAll('*').remove();
+  svgEl = d3.select('#net-svg').attr('viewBox', `0 0 ${W} ${H}`);
+
+  const defs = svgEl.append('defs');
+  const glow = defs.append('filter').attr('id','glow');
+  glow.append('feGaussianBlur').attr('stdDeviation','4').attr('result','blur');
+  const merge = glow.append('feMerge');
+  merge.append('feMergeNode').attr('in','blur');
+  merge.append('feMergeNode').attr('in','SourceGraphic');
+
+  ['completed','pending'].forEach(st => {
+    defs.append('marker')
+      .attr('id','arrow-'+st)
+      .attr('viewBox','0 -5 10 10')
+      .attr('refX', 0).attr('refY', 0)
+      .attr('markerWidth',6).attr('markerHeight',6)
+      .attr('orient','auto')
+      .append('path')
+      .attr('d','M0,-5L10,0L0,5')
+      .attr('fill', st==='completed' ? '#10b981' : '#ef4444')
+      .attr('opacity', 0.8);
+  });
+
+  zoomBeh = d3.zoom().scaleExtent([0.2,4])
+    .on('zoom', ev => gEl.attr('transform', ev.transform));
+  svgEl.call(zoomBeh);
+
+  gEl = svgEl.append('g');
+  drawNetwork(W, H);
+}
+
+function drawNetwork(W, H) {
+  if (!gEl) return;
+  const { nodes, links } = buildGraph();
+
+  const maxTotal = Math.max(...nodes.map(n=>n.total), 1);
+  const maxAmt   = Math.max(...links.map(l=>l.amount), 1);
+  const rScale   = d3.scaleSqrt().domain([0, maxTotal]).range([18, 42]);
+  const lScale   = d3.scaleLinear().domain([0, maxAmt]).range([1.5, 7]);
+
+  if (sim) sim.stop();
+
+  sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).id(d=>d.id).distance(170))
+    .force('charge', d3.forceManyBody().strength(-500))
+    .force('center', d3.forceCenter(W/2, H/2))
+    .force('collision', d3.forceCollide().radius(d => rScale(d.total)+18));
+
+  gEl.selectAll('*').remove();
+
+  // ── Links ──
+  const link = gEl.append('g').selectAll('line').data(links).enter().append('line')
+    .attr('stroke', d => d.status==='completed' ? '#10b981' : '#ef4444')
+    .attr('stroke-width', d => lScale(d.amount))
+    .attr('stroke-dasharray', d => d.status==='pending' ? '6,4' : null)
+    .attr('stroke-opacity', d => linkOpacity(d))
+    .attr('marker-end', d => `url(#arrow-${d.status})`)
+    .on('mouseenter', (ev, d) => showLinkTip(ev, d))
+    .on('mousemove',  (ev)    => moveTip(ev))
+    .on('mouseleave', ()      => hideTip());
+
+  // ── Nodes ──
+  const node = gEl.append('g').selectAll('g').data(nodes).enter().append('g')
+    .attr('cursor','pointer')
+    .call(d3.drag()
+      .on('start', (ev,d) => { if(!ev.active) sim.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag',  (ev,d) => { d.fx=ev.x; d.fy=ev.y; })
+      .on('end',   (ev,d) => { if(!ev.active) sim.alphaTarget(0); d.fx=null; d.fy=null; })
+    )
+    .on('click', (ev, d) => {
+      selMember = selMember===d.id ? null : d.id;
+      renderAll();
+    })
+    .on('mouseenter', (ev, d) => showNodeTip(ev, d))
+    .on('mousemove',  (ev)    => moveTip(ev))
+    .on('mouseleave', ()      => hideTip());
+
+  // Glow halo
+  node.append('circle')
+    .attr('r', d => rScale(d.total)+10)
+    .attr('fill', d => d.color)
+    .attr('opacity', d => nodeHalo(d))
+    .attr('filter','url(#glow)');
+
+  // Main circle
+  node.append('circle')
+    .attr('r', d => rScale(d.total))
+    .attr('fill', d => d.color)
+    .attr('opacity', d => nodeOpacity(d))
+    .attr('stroke', d => d.id===selMember ? '#fff' : 'transparent')
+    .attr('stroke-width', 2);
+
+  // Amount label inside
+  node.append('text')
+    .text(d => d.total > 0 ? fmt(d.total) : '')
+    .attr('text-anchor','middle').attr('dominant-baseline','middle')
+    .attr('font-size', d => rScale(d.total)>30 ? '10px' : '9px')
+    .attr('fill','rgba(255,255,255,.85)').attr('font-weight','600')
+    .attr('pointer-events','none');
+
+  // Name label below
+  node.append('text')
+    .text(d => d.name)
+    .attr('text-anchor','middle')
+    .attr('dy', d => rScale(d.total)+15)
+    .attr('font-size','12px').attr('fill',d => nodeOpacity(d)>0.5 ? '#e2e8f0' : '#64748b')
+    .attr('font-weight', d => d.id===selMember ? '700' : '400')
+    .attr('pointer-events','none');
+
+  // ── Tick ──
+  sim.on('tick', () => {
+    link
+      .attr('x1', d => {
+        const ang = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x);
+        return d.source.x + Math.cos(ang) * rScale(d.source.total);
+      })
+      .attr('y1', d => {
+        const ang = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x);
+        return d.source.y + Math.sin(ang) * rScale(d.source.total);
+      })
+      .attr('x2', d => {
+        const ang = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x);
+        return d.target.x - Math.cos(ang) * (rScale(d.target.total) + 10);
+      })
+      .attr('y2', d => {
+        const ang = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x);
+        return d.target.y - Math.sin(ang) * (rScale(d.target.total) + 10);
+      });
+
+    node.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+function linkOpacity(d) {
+  if (!selMember) return 0.65;
+  const sid = typeof d.source === 'object' ? d.source.id : d.source;
+  const tid = typeof d.target === 'object' ? d.target.id : d.target;
+  return (sid===selMember || tid===selMember) ? 0.95 : 0.08;
+}
+function nodeOpacity(d) {
+  if (!selMember) return 0.92;
+  return d.id===selMember ? 1 : 0.35;
+}
+function nodeHalo(d) {
+  if (!selMember) return 0.12;
+  return d.id===selMember ? 0.28 : 0.04;
+}
+
+// ─────────────────────────────────────────
+// TOOLTIP
+// ─────────────────────────────────────────
+function showNodeTip(ev, d) {
+  const tip = document.getElementById('tooltip');
+  const m = getMember(d.id);
+  tip.innerHTML = `
+    <div class="tt-title" style="color:${m.color}">${m.name}</div>
+    <div class="tt-row"><span class="tt-lbl">받은 토큰</span><span class="tt-val" style="color:#10b981">${fmt(d.recv)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">보낸 토큰</span><span class="tt-val" style="color:#60a5fa">${fmt(d.sent)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">총 교환량</span><span class="tt-val">${fmt(d.total)}</span></div>
+  `;
+  tip.style.display = 'block';
+  moveTip(ev);
+}
+function showLinkTip(ev, d) {
+  const tip = document.getElementById('tooltip');
+  const sid = typeof d.source==='object' ? d.source.id : d.source;
+  const tid = typeof d.target==='object' ? d.target.id : d.target;
+  const fm = getMember(sid), tm = getMember(tid);
+  if (!fm||!tm) return;
+  tip.innerHTML = `
+    <div class="tt-title">💸 토큰 교환</div>
+    <div style="margin-bottom:6px">
+      <span style="color:${fm.color};font-weight:600">${fm.name}</span>
+      <span style="color:var(--text-3)"> → </span>
+      <span style="color:${tm.color};font-weight:600">${tm.name}</span>
+    </div>
+    <div class="tt-row"><span class="tt-lbl">총 금액</span><span class="tt-val" style="color:#10b981;font-size:16px">${fmt(d.amount)}</span></div>
+    <div class="tt-row"><span class="tt-lbl">거래 수</span><span class="tt-val">${d.count}건</span></div>
+    <div class="tt-row"><span class="tt-lbl">상태</span><span class="tt-val" style="color:${d.status==='completed'?'#10b981':'#fbbf24'}">${d.status==='completed'?'✅ 완료':'⏳ 대기'}</span></div>
+  `;
+  tip.style.display = 'block';
+  moveTip(ev);
+}
+function moveTip(ev) {
+  const wrap = document.getElementById('canvas-wrap');
+  const rect  = wrap.getBoundingClientRect();
+  const tip   = document.getElementById('tooltip');
+  let x = ev.clientX - rect.left + 16;
+  let y = ev.clientY - rect.top  - 10;
+  if (x + 280 > wrap.clientWidth)  x = ev.clientX - rect.left - 280;
+  if (y + 160 > wrap.clientHeight) y = ev.clientY - rect.top  - 160;
+  tip.style.left = x + 'px';
+  tip.style.top  = y + 'px';
+}
+function hideTip() { document.getElementById('tooltip').style.display = 'none'; }
+
+// ─────────────────────────────────────────
+// EDIT HELPERS
+// ─────────────────────────────────────────
+function populateEditForm(record) {
+  editingId = record.id;
+
+  document.getElementById('f-from').value = record.from;
+  document.getElementById('f-to').value   = record.to;
+
+  const validAmts = ['50000','100000','300000','500000','1000000'];
+  if (validAmts.includes(String(record.amount))) {
+    document.getElementById('f-amt').value   = String(record.amount);
+    document.getElementById('custom-wrap').style.display = 'none';
+  } else {
+    document.getElementById('f-amt').value    = 'custom';
+    document.getElementById('custom-wrap').style.display = 'block';
+    document.getElementById('f-custom').value = record.amount;
+  }
+
+  document.getElementById('f-date').value   = record.date;
+  document.getElementById('f-reason').value = record.reason;
+  document.getElementById('f-status').value = record.status;
+
+  document.getElementById('btn-add').textContent = '💾 수정 저장';
+  document.getElementById('btn-cancel').classList.add('visible');
+  document.getElementById('edit-banner').classList.add('visible');
+
+  document.getElementById('right-panel').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('btn-add').textContent = '💰 가치 토큰 발행';
+  document.getElementById('btn-cancel').classList.remove('visible');
+  document.getElementById('edit-banner').classList.remove('visible');
+  document.getElementById('f-from').value   = '';
+  document.getElementById('f-to').value     = '';
+  document.getElementById('f-reason').value = '';
+  document.getElementById('f-amt').value    = '500000';
+  document.getElementById('custom-wrap').style.display = 'none';
+  document.getElementById('f-date').value   = new Date().toISOString().split('T')[0];
+}
+
+// ─────────────────────────────────────────
+// FORM
+// ─────────────────────────────────────────
+// MOBILE NAV
+// ─────────────────────────────────────────
+let mobTab = 'net';
+
+function isMobile() { return window.innerWidth <= 768; }
+
+function applyMobLayout(tab) {
+  if (!isMobile()) {
+    // Desktop: show everything
+    ['left-panel','canvas-wrap','right-panel'].forEach(id => {
+      document.getElementById(id).style.display = '';
+    });
+    document.getElementById('form-section').style.display = '';
+    document.getElementById('log-section').style.display = '';
+    return;
+  }
+
+  mobTab = tab;
+  const L = document.getElementById('left-panel');
+  const C = document.getElementById('canvas-wrap');
+  const R = document.getElementById('right-panel');
+  const F = document.getElementById('form-section');
+  const G = document.getElementById('log-section');
+
+  // Hide all first
+  L.style.display = C.style.display = R.style.display = 'none';
+
+  // Measure header height for #app
+  const hdr = document.getElementById('header');
+  document.getElementById('app').style.height =
+    `calc(100dvh - ${hdr.offsetHeight}px - 58px)`;
+
+  if (tab === 'net') {
+    C.style.display = 'block';
+    setTimeout(() => { if (sim) sim.alpha(0.1).restart(); }, 50);
+  } else if (tab === 'stat') {
+    L.style.display = 'flex';
+  } else if (tab === 'form') {
+    R.style.display = 'flex';
+    F.style.display = 'block';
+    G.style.display = 'none';
+  } else if (tab === 'log') {
+    R.style.display = 'flex';
+    F.style.display = 'none';
+    G.style.display = 'block';
+  }
+
+  // Sync active button
+  document.querySelectorAll('.mob-tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.tab === tab)
+  );
+}
+
+function initMobNav() {
+  document.getElementById('mob-nav').addEventListener('click', ev => {
+    const btn = ev.target.closest('.mob-tab');
+    if (btn) applyMobLayout(btn.dataset.tab);
+  });
+  applyMobLayout(mobTab);
+}
+
+function initMemberFilter() {
+  const wrap = document.getElementById('member-filter');
+  const allBtn = `<button class="ftag on" data-mid="">전체</button>`;
+  const memberBtns = MEMBERS.map(m =>
+    `<button class="ftag" data-mid="${m.id}">` +
+    `<span style="display:inline-block;width:6px;height:6px;border-radius:50%;` +
+    `background:${m.color};margin-right:4px;vertical-align:middle"></span>` +
+    `${m.name}</button>`
+  ).join('');
+  wrap.innerHTML = allBtn + memberBtns;
+
+  wrap.addEventListener('click', ev => {
+    const btn = ev.target.closest('.ftag');
+    if (!btn) return;
+    selMember = btn.dataset.mid || null;
+    renderAll();
+  });
+}
+
+function syncMemberFilter() {
+  document.querySelectorAll('#member-filter .ftag').forEach(b => {
+    b.classList.toggle('on', (b.dataset.mid || null) === selMember);
+  });
+}
+
+// ─────────────────────────────────────────
+function populateSelects() {
+  const opts = MEMBERS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('f-from').innerHTML = '<option value="">선택</option>' + opts;
+  document.getElementById('f-to').innerHTML   = '<option value="">선택</option>' + opts;
+}
+
+document.getElementById('f-amt').addEventListener('change', function() {
+  document.getElementById('custom-wrap').style.display = this.value==='custom' ? 'block' : 'none';
+});
+
+document.getElementById('btn-add').addEventListener('click', () => {
+  const from    = document.getElementById('f-from').value;
+  const to      = document.getElementById('f-to').value;
+  const amtSel  = document.getElementById('f-amt').value;
+  const amount  = amtSel==='custom'
+    ? parseInt(document.getElementById('f-custom').value)
+    : parseInt(amtSel);
+  const date     = document.getElementById('f-date').value;
+  const reason   = document.getElementById('f-reason').value.trim();
+  const status   = document.getElementById('f-status').value;
+
+  if (!from||!to)         { toast('발행자/기여자를 선택해주세요', true); return; }
+  if (from===to)           { toast('발행자와 기여자가 같습니다', true); return; }
+  if (!amount||amount<1)   { toast('올바른 금액을 입력해주세요', true); return; }
+  if (!date)               { toast('날짜를 선택해주세요', true); return; }
+  if (reason.length < 10)  { toast('감사 이유를 10자 이상 입력해주세요', true); return; }
+
+  if (editingId) {
+    // ── 수정 모드
+    const idx = exchanges.findIndex(e => e.id === editingId);
+    if (idx !== -1) {
+      exchanges[idx] = { ...exchanges[idx], from, to, amount, date, reason, status };
+    }
+    cancelEdit();
+    saveData();
+    renderAll();
+    toast('✅ 발행 기록이 수정되었습니다');
+  } else {
+    // ── 신규 발행
+    exchanges.unshift({ id:'tx'+Date.now(), from, to, amount, date, reason, status });
+    saveData();
+    renderAll();
+    toast('💰 가치 토큰이 발행되었습니다!');
+    document.getElementById('f-from').value   = '';
+    document.getElementById('f-to').value     = '';
+    document.getElementById('f-reason').value = '';
+  }
+});
+
+document.getElementById('btn-cancel').addEventListener('click', cancelEdit);
+
+
+document.getElementById('btn-clear-all').addEventListener('click', () => {
+  if (!confirm('모든 거래 기록을 초기화할까요?')) return;
+  exchanges = [];
+  saveData();
+  renderAll();
+  toast('발행 내역이 초기화되었습니다');
+});
+
+// ─────────────────────────────────────────
+// ZOOM CONTROLS
+// ─────────────────────────────────────────
+document.getElementById('btn-zoomin').addEventListener('click', () =>
+  svgEl.transition().duration(300).call(zoomBeh.scaleBy, 1.3));
+document.getElementById('btn-zoomout').addEventListener('click', () =>
+  svgEl.transition().duration(300).call(zoomBeh.scaleBy, 0.77));
+document.getElementById('btn-reset').addEventListener('click', () => {
+  selMember = null;
+  svgEl.transition().duration(500).call(zoomBeh.transform, d3.zoomIdentity);
+  renderAll();
+});
+document.getElementById('btn-fs').addEventListener('click', () => {
+  const el = document.getElementById('canvas-wrap');
+  if (document.fullscreenElement) document.exitFullscreen();
+  else el.requestFullscreen();
+});
+
+// ─────────────────────────────────────────
+// RENDER ALL
+// ─────────────────────────────────────────
+function renderAll() {
+  const s = computeStats();
+  renderHeader(s);
+  renderMemberList(s.mStats);
+  renderRanking('rank-recv', MEMBERS.map(m => ({ ...m, v: s.mStats[m.id].recv })).sort((a,b)=>b.v-a.v));
+  renderRanking('rank-sent', MEMBERS.map(m => ({ ...m, v: s.mStats[m.id].sent })).sort((a,b)=>b.v-a.v));
+  renderTxLog();
+  syncMemberFilter();
+
+  const bar = document.getElementById('sel-bar');
+  if (selMember) {
+    const m = getMember(selMember);
+    bar.textContent = `🔍 ${m.name} 기여 네트워크 보는 중 — 다시 클릭하거나 [초기화] 버튼으로 해제`;
+    bar.style.display = 'block';
+  } else {
+    bar.style.display = 'none';
+  }
+
+  if (gEl) drawNetwork(
+    document.getElementById('canvas-wrap').clientWidth,
+    document.getElementById('canvas-wrap').clientHeight
+  );
+}
+
+// ─────────────────────────────────────────
+// LOGIN
+// ─────────────────────────────────────────
+const PASS_USER  = '484848';
+const PASS_ADMIN = '5928';
+let userRole = sessionStorage.getItem('cm-role') || null;
+
+function doLogin(pw) {
+  if (pw === PASS_ADMIN) {
+    userRole = 'admin';
+  } else if (pw === PASS_USER) {
+    userRole = 'user';
+  } else {
+    const inp = document.getElementById('login-pw');
+    document.getElementById('login-err').textContent = '비밀번호가 올바르지 않습니다';
+    inp.value = '';
+    inp.classList.remove('shake');
+    void inp.offsetWidth; // reflow for animation restart
+    inp.classList.add('shake');
+    inp.focus();
+    return;
+  }
+  sessionStorage.setItem('cm-role', userRole);
+  enterApp();
+}
+
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('header').style.display = 'flex';
+  document.getElementById('app').style.display = 'flex';
+
+  if (userRole === 'admin') {
+    document.getElementById('btn-clear-all').style.display = 'block';
+  }
+
+  initMemberFilter();
+  initMobNav();
+  initNetwork();
+  renderAll();
+}
+
+// Login events
+document.getElementById('login-btn').addEventListener('click', () => {
+  doLogin(document.getElementById('login-pw').value);
+});
+document.getElementById('login-pw').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doLogin(e.target.value);
+});
+document.getElementById('pw-toggle').addEventListener('click', () => {
+  const inp = document.getElementById('login-pw');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+});
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+populateSelects();
+
+window.addEventListener('load', () => {
+  if (userRole) {
+    // 세션에 로그인 정보가 있으면 바로 앱 진입
+    enterApp();
+  }
+  // 로그인 화면에서 비밀번호 필드에 포커스
+  const pw = document.getElementById('login-pw');
+  if (pw) setTimeout(() => pw.focus(), 100);
+});
+
+let _resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(() => {
+    applyMobLayout(mobTab);
+    initNetwork();
+    renderAll();
+  }, 200);
+});
+</script>
+</body>
+</html>
