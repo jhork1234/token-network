@@ -675,11 +675,11 @@ async function loadData() {
 }
 
 function sheetPost(payload) {
-  return fetch(SHEET_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    body: JSON.stringify(payload)
-  }).catch(err => console.warn('Sheet 쓰기 실패:', err));
+  let url = SHEET_URL + '?action=' + encodeURIComponent(payload.action);
+  if (payload.data) url += '&data=' + encodeURIComponent(JSON.stringify(payload.data));
+  if (payload.id)   url += '&id='   + encodeURIComponent(payload.id);
+  return fetch(url, { redirect: 'follow' })
+    .catch(err => console.warn('Sheet 쓰기 실패:', err));
 }
 
 // ─────────────────────────────────────────
